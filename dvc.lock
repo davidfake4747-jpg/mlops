@@ -14,7 +14,7 @@ stages:
       size: 5025
     - path: preprocess.py
       hash: md5
-      md5: f4c2266f043cd69034d734377d7c1383
+      md5: 8c527bc55b288530d76f6f44469367c5
       size: 6175
     - path: requirements-data.lock.txt
       hash: md5
@@ -103,8 +103,8 @@ stages:
       size: 2802
     - path: service/predict.py
       hash: md5
-      md5: d2af966f3d3f1ad9ea177d963773aff9
-      size: 3433
+      md5: 60e0954d0e4d24279a4f85062a6e4c70
+      size: 3526
     - path: train.py
       hash: md5
       md5: 11ec132a7c550a158c8f603eb507e10d
@@ -132,3 +132,37 @@ stages:
       hash: md5
       md5: 048ca65fe0b066290a2ca138dea763b2
       size: 2436
+  reference:
+    cmd: python build_reference.py
+    deps:
+    - path: build_reference.py
+      hash: md5
+      md5: efbe8afd1391031fe375b69973305706
+      size: 799
+    - path: data
+      hash: md5
+      md5: c09457a8b298193a39e0a2366e947ca3.dir
+      size: 2049267
+      nfiles: 22
+    - path: features/train.csv
+      hash: md5
+      md5: 68ee3fbe917ed87baa4e2e4a55974d5d
+      size: 7777
+    - path: models
+      hash: md5
+      md5: 4e6d50527264982e03a72aec2acdcdb7.dir
+      size: 4286
+      nfiles: 3
+    - path: requirements-data.lock.txt
+      hash: md5
+      md5: 19d71f1f9901feae0c2432045d799b61
+      size: 1870
+    - path: service/drift.py
+      hash: md5
+      md5: 4dca5f4b0a78c2918497b36b59a88e68
+      size: 2773
+    outs:
+    - path: reports/reference.json
+      hash: md5
+      md5: 9ea434c08e93e9d71e632a63ddebc8ee
+      size: 657

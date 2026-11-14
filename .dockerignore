@@ -1,0 +1,11 @@
+*
+!Dockerfile
+!requirements-runtime.txt
+!requirements-monitoring.lock.txt
+!.env.example
+!service/
+!service/**
+!reports/
+!reports/reference.json
+service/__pycache__/
+service/*.log

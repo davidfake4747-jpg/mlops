@@ -27,7 +27,7 @@ def import_archive(archive, output="data"):
     if not entries:
         raise ValueError("Архив не содержит .xlsx")
     output.mkdir(parents=True, exist_ok=True)
-    unexpected = set(p.name for p in output.iterdir()) - names - {"source_manifest.json"}
+    unexpected = {p.name for p in output.iterdir()} - names - {"source_manifest.json"}
     if unexpected:
         raise ValueError(f"В каталоге данных есть посторонние файлы: {sorted(unexpected)}")
     # Проверка всех существующих файлов до записи, чтобы не перетирать чужие данные.

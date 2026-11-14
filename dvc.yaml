@@ -47,3 +47,15 @@ stages:
     metrics:
       - reports/training.json:
           cache: false
+  reference:
+    cmd: python build_reference.py
+    deps:
+      - features/train.csv
+      - models
+      - data
+      - build_reference.py
+      - service/drift.py
+      - requirements-data.lock.txt
+    outs:
+      - reports/reference.json:
+          cache: false

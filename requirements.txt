@@ -1,5 +1,7 @@
 -c requirements-data.lock.txt
 -c requirements-model.lock.txt
+-c requirements-monitoring.lock.txt
+prometheus-client
 mlflow
 cianparser
 pandas

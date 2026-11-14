@@ -13,8 +13,10 @@ from flask_httpauth import HTTPTokenAuth
 from werkzeug.exceptions import BadRequest
 
 try:
+    from .monitoring import install_monitoring
     from .predict import ROOT, load_model, request_frame
 except ImportError:
+    from monitoring import install_monitoring
     from predict import ROOT, load_model, request_frame
 
 
@@ -23,7 +25,10 @@ def create_app(overrides=None):
     config = {
         **dotenv_values(ROOT / ".env.example"),
         **{k: v for k, v in dotenv_values(ROOT / ".env").items() if v is not None},
-        **{k: os.environ[k] for k in ("APP_TOKEN", "MODEL_NAME", "ORIGIN") if k in os.environ},
+        **{k: os.environ[k] for k in (
+            "APP_TOKEN", "MODEL_NAME", "ORIGIN", "DRIFT_REFERENCE_PATH",
+            "DRIFT_WINDOW_SIZE", "DRIFT_MIN_SAMPLES",
+        ) if k in os.environ},
         **(overrides or {}),
     }
     app.config.update(config)
@@ -35,6 +40,7 @@ def create_app(overrides=None):
         app.logger.warning("Модель отсутствует; выполните dvc pull или dvc repro")
         bundle = None
     app.config["MODEL_BUNDLE"] = bundle
+    monitor = install_monitoring(app, ROOT)
     CORS(app, resources={r"/api/*": {"origins": config.get("ORIGIN", "http://localhost:5000")}})
     auth = HTTPTokenAuth(scheme="Bearer")
 
@@ -87,6 +93,7 @@ def create_app(overrides=None):
         except Exception:
             app.logger.exception("Ошибка предсказания")
             return {"status": "error", "data": "Не удалось получить допустимый прогноз"}, 503
+        monitor.observe(frame)
         return {"status": "success", "data": round(price)}
 
     return app

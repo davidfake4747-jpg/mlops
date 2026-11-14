@@ -1,8 +1,8 @@
 import argparse
 import os
 import re
-import pandas as pd
 
+import pandas as pd
 
 # Возможные варианты написания заголовка колонки со ссылкой
 ID_COLUMN_CANDIDATES = ["sNO6x href", "sNO6x  href", "href"]
