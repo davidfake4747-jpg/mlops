@@ -93,7 +93,7 @@ Train содержит 63 квартиры из 36 групп, holdout — 15 к
 Это результат текущих данных и параметров, не требуемые размеры будущих выборок.
 
 ```sh
-python -m pytest -q
+python -m pytest -q tests/test_data_pipeline.py
 dvc status
 ```
 

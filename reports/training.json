@@ -1,0 +1,91 @@
+{
+  "selected_model": "linear",
+  "features": [
+    "area",
+    "rooms",
+    "floor",
+    "total_floors"
+  ],
+  "data_dvc_md5": "c09457a8b298193a39e0a2366e947ca3.dir",
+  "train_rows": 63,
+  "holdout_rows": 15,
+  "models": {
+    "baseline": {
+      "cv_mae_mean_rub": 6960384.615384616,
+      "cv_mae_std_rub": 1980954.4216805708,
+      "cv_mape_mean_pct": 26.329490104155745,
+      "cv_mape_std_pct": 4.017996735577331,
+      "train_mae_rub": 6669365.079365079,
+      "train_mape_pct": 25.24882184703628,
+      "holdout_mae_rub": 6049981.333333333,
+      "holdout_mape_pct": 24.88207912368045,
+      "positive_finite_predictions": true,
+      "folds": [
+        {
+          "fold": 0,
+          "mae_rub": 4354615.384615385,
+          "mape_pct": 20.014153611785904
+        },
+        {
+          "fold": 1,
+          "mae_rub": 10304615.384615384,
+          "mape_pct": 30.43726980141836
+        },
+        {
+          "fold": 2,
+          "mae_rub": 6812692.307692308,
+          "mape_pct": 30.833085081918593
+        },
+        {
+          "fold": 3,
+          "mae_rub": 7516666.666666667,
+          "mape_pct": 25.904622584288685
+        },
+        {
+          "fold": 4,
+          "mae_rub": 5813333.333333333,
+          "mape_pct": 24.458319441367184
+        }
+      ]
+    },
+    "linear": {
+      "cv_mae_mean_rub": 3192985.8869158076,
+      "cv_mae_std_rub": 1372488.7384903086,
+      "cv_mape_mean_pct": 14.355172823256776,
+      "cv_mape_std_pct": 5.805566282037126,
+      "train_mae_rub": 2594662.883050491,
+      "train_mape_pct": 11.413469517689002,
+      "holdout_mae_rub": 2349316.16779326,
+      "holdout_mape_pct": 9.403560568182517,
+      "positive_finite_predictions": true,
+      "folds": [
+        {
+          "fold": 0,
+          "mae_rub": 1472785.1943950518,
+          "mape_pct": 6.7201802377343425
+        },
+        {
+          "fold": 1,
+          "mae_rub": 5412087.583519907,
+          "mape_pct": 23.25450280586856
+        },
+        {
+          "fold": 2,
+          "mae_rub": 3760643.1048369785,
+          "mape_pct": 18.392340412822165
+        },
+        {
+          "fold": 3,
+          "mae_rub": 3227208.311802572,
+          "mape_pct": 12.287564243228903
+        },
+        {
+          "fold": 4,
+          "mae_rub": 2092205.2400245296,
+          "mape_pct": 11.121276416629915
+        }
+      ]
+    }
+  },
+  "selection_rule": "linear only if positive predictions and lower CV and holdout MAE"
+}
