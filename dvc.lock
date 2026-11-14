@@ -1,0 +1,75 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python preprocess.py
+    deps:
+    - path: data
+      hash: md5
+      md5: c09457a8b298193a39e0a2366e947ca3.dir
+      size: 2049267
+      nfiles: 22
+    - path: prepare_data.py
+      hash: md5
+      md5: c012f5954e6afbe5824f9e97942c8275
+      size: 5025
+    - path: preprocess.py
+      hash: md5
+      md5: f4c2266f043cd69034d734377d7c1383
+      size: 6175
+    - path: requirements-data.lock.txt
+      hash: md5
+      md5: 19d71f1f9901feae0c2432045d799b61
+      size: 1870
+    params:
+      params.yaml:
+        prepare.exclude_apartments: true
+    outs:
+    - path: features/all_features.csv
+      hash: md5
+      md5: 507cbf2692915ceaa566ba8e8acaa938
+      size: 9351
+    - path: reports/data_quality.json
+      hash: md5
+      md5: 9f2057b7a05a9392582bd94b27db6cb8
+      size: 1944
+    - path: reports/excluded_rows.csv
+      hash: md5
+      md5: 4747a90164b4add4a29f72be08e99d39
+      size: 358
+  split:
+    cmd: python split_data.py
+    deps:
+    - path: features/all_features.csv
+      hash: md5
+      md5: 507cbf2692915ceaa566ba8e8acaa938
+      size: 9351
+    - path: requirements-data.lock.txt
+      hash: md5
+      md5: 19d71f1f9901feae0c2432045d799b61
+      size: 1870
+    - path: split_data.py
+      hash: md5
+      md5: 2c9698253a0c3a8b8931e89737d1665c
+      size: 3310
+    params:
+      params.yaml:
+        split.n_splits: 5
+        split.random_state: 42
+        split.test_size: 0.2
+    outs:
+    - path: features/split_assignments.csv
+      hash: md5
+      md5: e02461c5b928d20c38062d04c46ef9ae
+      size: 1499
+    - path: features/test.csv
+      hash: md5
+      md5: fedf16c9a6fcefbb1c64a2b20352cf8c
+      size: 1792
+    - path: features/train.csv
+      hash: md5
+      md5: 68ee3fbe917ed87baa4e2e4a55974d5d
+      size: 7777
+    - path: reports/split.json
+      hash: md5
+      md5: b3b1042060b371634e8b07f3214db3c7
+      size: 321

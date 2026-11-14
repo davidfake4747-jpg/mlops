@@ -1,0 +1,7 @@
+-c requirements-data.lock.txt
+pandas
+openpyxl
+scikit-learn
+dvc
+PyYAML
+pytest

@@ -1,6 +1,6 @@
+import argparse
 import os
 import re
-import glob
 import pandas as pd
 
 
@@ -81,72 +81,77 @@ def extract_features_from_text(text: str) -> dict:
 
 
 def process_excel_file(path: str) -> pd.DataFrame:
-    """Читает Excel-файл и возвращает DataFrame с id + признаками."""
-    df = pd.read_excel(path, header=None, dtype=str)
-    df = df.fillna("")
+    """Читает поля выгрузки; описания и ипотечные суммы не используются."""
+    df = pd.read_excel(path, dtype=str, engine="openpyxl").fillna("")
+    df.columns = [" ".join(str(c).split()) for c in df.columns]
+    columns = {
+        "id": "sNO6x href",
+        "rooms": "s6KKu",
+        "area": "s6KKu 2",
+        "floor": "s6KKu 3",
+        "price": "s5oAg",
+        "address": "sS4xs",
+    }
+    missing = set(columns.values()) - set(df.columns)
+    if missing:
+        raise ValueError(f"{os.path.basename(path)}: отсутствуют колонки {sorted(missing)}")
+    if df.columns.duplicated().any():
+        raise ValueError(f"{os.path.basename(path)}: повторяющиеся заголовки")
 
-    id_col = find_id_column(df)
-    if id_col is None:
-        print(f"  ⚠ не найдена колонка со ссылкой в {os.path.basename(path)}")
-        return pd.DataFrame()
-
-    rows = []
-    for _, row in df.iterrows():
-        id_value = extract_id_from_url(str(row.iloc[id_col]))
-        if id_value is None:
-            continue  # пропускаем строки без id (шапка, пустые и т.п.)
-
-        # Для остальных признаков склеиваем все ячейки, КРОМЕ колонки со ссылкой
-        other_text = " | ".join(
-            str(v) for i, v in enumerate(row.values)
-            if i != id_col and str(v).strip()
+    records = []
+    for index, row in df.iterrows():
+        if not any(row[c] for c in columns.values()):
+            continue
+        # Изолированное извлечение не позволяет взять цену/площадь из описания.
+        room_text = row[columns["rooms"]].strip()
+        room_match = re.fullmatch(
+            r"(\d+)\s*-\s*комн\.?\s+(?:квартира|апартаменты)", room_text, re.IGNORECASE
         )
-        feats = extract_features_from_text(other_text)
-        feats["id"] = id_value
-        feats["source_file"] = os.path.basename(path)
-        rows.append(feats)
-
-    return pd.DataFrame(rows)
+        studio = re.fullmatch(r"(?:(?:квартира|апартаменты)-)?студия", room_text, re.IGNORECASE)
+        rooms = int(room_match[1]) if room_match else 0 if studio else None
+        area_match = re.fullmatch(r"(\d+(?:[.,]\d+)?)\s*м[²2]", row[columns["area"]].strip())
+        area = float(area_match[1].replace(",", ".")) if area_match else None
+        floor_match = re.fullmatch(r"(\d+)\s*/\s*(\d+)\s*эт\.?", row[columns["floor"]].strip())
+        price_text = row[columns["price"]].strip()
+        price = None
+        if re.fullmatch(r"[\d\s\u00a0\u202f]+\s*₽", price_text):
+            price = int(re.sub(r"\s", "", price_text.removesuffix("₽")))
+        kind = row[columns["rooms"]].casefold()
+        property_type = (
+            "apartment" if "апартамент" in kind
+            else "flat" if "квартир" in kind or "студи" in kind
+            else "unknown"
+        )
+        records.append({
+            "id": extract_id_from_url(row[columns["id"]]),
+            "rooms": rooms,
+            "area": area,
+            "floor": int(floor_match[1]) if floor_match else None,
+            "total_floors": int(floor_match[2]) if floor_match else None,
+            "price": price,
+            "address": row[columns["address"]],
+            "property_type": property_type,
+            "source_file": os.path.basename(path),
+            "source_row": int(index) + 2,
+        })
+    return pd.DataFrame(records, columns=[
+        "id", "rooms", "area", "floor", "total_floors", "price", "address",
+        "property_type", "source_file", "source_row",
+    ])
 
 
 def main(folder: str, out_dir: str = "features", out_name: str = "all_features.csv"):
-    files = glob.glob(os.path.join(folder, "*.xls*"))
-    if not files:
-        print(f"В папке '{folder}' не найдено Excel-файлов.")
-        return
+    from prepare_data import prepare
 
-    os.makedirs(out_dir, exist_ok=True)
-
-    all_frames = []
-    for f in files:
-        print(f"Обработка: {f}")
-        try:
-            df = process_excel_file(f)
-            print(f"  → извлечено записей: {len(df)}")
-            if not df.empty:
-                all_frames.append(df)
-        except Exception as e:
-            print(f"  ⚠ ошибка: {e}")
-
-    if not all_frames:
-        print("Не удалось извлечь данные.")
-        return
-
-    result = pd.concat(all_frames, ignore_index=True)
-    cols = ["id", "rooms", "area", "floor", "total_floors", "price", "source_file"]
-    result = result[cols]
-
-    if result["id"].notna().any():
-        before = len(result)
-        result = result.drop_duplicates(subset=["id"], keep="first")
-        if before != len(result):
-            print(f"Удалено дублей по id: {before - len(result)}")
-
-    combined_path = os.path.join(out_dir, out_name)
-    result.to_csv(combined_path, index=False, encoding="utf-8-sig")
-    print(f"\nИтого сохранено {len(result)} строк в '{combined_path}'")
+    prepare(folder, os.path.join(out_dir, out_name))
 
 
 if __name__ == "__main__":
-    main(folder="./data", out_dir="./features")
-    
+    parser = argparse.ArgumentParser(description="Подготовка выгрузок Domclick")
+    parser.add_argument("--input", default="data")
+    parser.add_argument("--output", default="features/all_features.csv")
+    parser.add_argument("--report-dir", default="reports")
+    args = parser.parse_args()
+    from prepare_data import prepare
+
+    prepare(args.input, args.output, args.report_dir)

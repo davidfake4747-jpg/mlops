@@ -1,0 +1,6 @@
+prepare:
+  exclude_apartments: true
+split:
+  test_size: 0.2
+  random_state: 42
+  n_splits: 5
