@@ -1,0 +1,6 @@
+-r requirements-data.txt
+-c requirements-model.lock.txt
+mlflow
+Flask
+Flask-Cors
+Flask-HTTPAuth

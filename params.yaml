@@ -4,3 +4,6 @@ split:
   test_size: 0.2
   random_state: 42
   n_splits: 5
+train:
+  tracking_uri: sqlite:///mlruns/mlflow.db
+  experiment_name: moscow-housing

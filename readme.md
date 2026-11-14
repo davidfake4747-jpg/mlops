@@ -10,6 +10,12 @@
 [docs/data.md](docs/data.md). Исходные Excel-файлы и подготовленные таблицы
 хранятся в DVC, в Git — код, параметры и метаданные.
 
+## Обучение и MLflow
+
+Ветка `mlflow` добавляет сравнение baseline и линейной регрессии, сохранение
+моделей, локальный трекинг экспериментов и API с проверкой запросов.
+Инструкция: [docs/models.md](docs/models.md).
+
 ## Защита семинаров
 
 Отчет по семинарам сдается в личной беседе.  
@@ -31,27 +37,34 @@
 ### Как запустить
 1. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/labintsev/mlops.git
+git clone https://github.com/davidfake4747-jpg/mlops.git
+cd mlops
 ```
 
 2. Создайте venv и установите зависимости:
 ```bash
-python -m venv venv
-venv/Scripts/activate
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-model.txt
 ```
 
-4. Запустите сервис (модель по умолчанию берётся из `MODEL_NAME` в `.env`)
+3. Восстановите данные и модели через DVC или выполните импорт и обучение
+   по [инструкции](docs/models.md). Скопируйте `.env.example` в `.env`
+   и задайте собственный `APP_TOKEN`.
+
+4. Запустите сервис (модель по умолчанию берётся из `MODEL_NAME` в `.env`):
 ```sh
 python service/app.py
-# или с явным указанием модели из service/predict.py
+# или с явным выбором обученного baseline
 python service/app.py -m baseline_const
 ```
 Веб приложение доступно по ссылке `http://127.0.0.1:5000`
-API endpoint доступен  по ссылке `http://127.0.0.1:5000/api/numbers`
+Предсказание: `POST http://127.0.0.1:5000/api/numbers` с Bearer-токеном.
+Готовность: `GET http://127.0.0.1:5000/health`.
 
-Чтобы добавить новую модель, объявите функцию `def my_model(X): ...` в `service/predict.py`
-и зарегистрируйте её в словаре `MODELS` — после этого её можно выбрать через `-m` / `MODEL_NAME`.
+Модели обучаются в `train.py`. Имена `selected`, `baseline_const`, `lin_reg`
+соответствуют сохранённым артефактам. Перед загрузкой проверяются версия
+формата, схема признаков и версия scikit-learn.
 
 ## Сбор данных
 Для сбора данных используем [Instant data scraper](https://chromewebstore.google.com/detail/instant-data-scraper/ofaokhiedipichpaobibbnahnkdoiiah?pli=1)

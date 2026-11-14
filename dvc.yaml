@@ -27,3 +27,23 @@ stages:
       - features/test.csv
       - features/split_assignments.csv
       - reports/split.json
+  train:
+    cmd: python train.py
+    deps:
+      - features/train.csv
+      - features/test.csv
+      - data
+      - reports/data_quality.json
+      - reports/split.json
+      - train.py
+      - service/predict.py
+      - requirements-model.lock.txt
+    params:
+      - train
+      - split
+    outs:
+      - models
+      - reports/holdout_predictions.csv
+    metrics:
+      - reports/training.json:
+          cache: false

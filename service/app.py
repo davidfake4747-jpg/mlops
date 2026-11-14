@@ -1,127 +1,104 @@
+"""Flask API для выбранного обученного артефакта."""
+
 import argparse
+import hmac
+import logging
+import math
+import os
+
+from dotenv import dotenv_values
 from flask import Flask, render_template, request
-from logging.config import dictConfig
-
-dictConfig(
-    {
-        "version": 1,
-        "formatters": {
-            "default": {
-                "format": "[%(asctime)s] %(levelname)s in %(module)s: %(message)s",
-            }
-        },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "stream": "ext://sys.stdout",
-                "formatter": "default",
-            },
-            "file": {
-                "class": "logging.FileHandler",
-                "filename": "service/flask.log",
-                "formatter": "default",
-            },
-        },
-        "root": {"level": "DEBUG", "handlers": ["console", "file"]},
-    }
-)
-
-app = Flask(__name__)
-
-import dotenv
-config = {
-    **dotenv.dotenv_values('.env.example'),
-    **{k: v for k, v in dotenv.dotenv_values('.env').items() if v is not None},
-}
-
 from flask_cors import CORS
-cors = CORS(app, resources={r"/api/*": {"origins": config.get("ORIGIN", "http://localhost:5000")}})
-
 from flask_httpauth import HTTPTokenAuth
-auth = HTTPTokenAuth(scheme='Bearer')
-tokens = { config['APP_TOKEN']: "user1", }
-
-@auth.verify_token
-def verify_token(token):
-    if token in tokens:
-        return tokens[token]
-
-import joblib
+from werkzeug.exceptions import BadRequest
 
 try:
-    from . import predict as prediction_models
+    from .predict import ROOT, load_model, request_frame
 except ImportError:
-    import predict as prediction_models
-
-# Модель по умолчанию задаётся в .env
-MODEL_NAME = config.get("MODEL_NAME", "baseline_const")
+    from predict import ROOT, load_model, request_frame
 
 
-def load_predictor(name):
-    """Возвращает predict(X) по имени модели из predict.py или пути к .pkl."""
-    if name in prediction_models.MODELS:
-        return prediction_models.MODELS[name]
-    return joblib.load(name).predict
-
-
-app.config["predict"] = load_predictor(MODEL_NAME)
-
-
-# Маршрут для отображения формы
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-# Маршрут для обработки данных формы
-@app.route("/api/numbers", methods=["POST"])
-@auth.login_required
-def process_numbers():
-
-    data = request.get_json()
-
-    app.logger.info(f"Requst data: {data}")
-    try:
-        total_meters = float(data["area"])
-        floors_count = int(data["total_floors"])
-        rooms_1 = int(data["rooms"]) == 1
-        rooms_2 = int(data["rooms"]) == 2
-        rooms_3 = int(data["rooms"]) == 3
-        first_floor = int(data["floor"]) == 1
-        last_floor = int(data["floor"]) == floors_count
-    except ValueError:
-        return {"status": "error", "data": "Ошибка парсинга данных"}
-
-    features = {
-        "total_meters": total_meters,
-        "floors_count": floors_count,
-        "rooms_1": rooms_1,
-        "rooms_2": rooms_2,
-        "rooms_3": rooms_3,
-        "first_floor": first_floor,
-        "last_floor": last_floor,
+def create_app(overrides=None):
+    app = Flask(__name__)
+    config = {
+        **dotenv_values(ROOT / ".env.example"),
+        **{k: v for k, v in dotenv_values(ROOT / ".env").items() if v is not None},
+        **{k: os.environ[k] for k in ("APP_TOKEN", "MODEL_NAME", "ORIGIN") if k in os.environ},
+        **(overrides or {}),
     }
-    row = [features[name] for name in prediction_models.FEATURES]
+    app.config.update(config)
+    name = app.config.get("MODEL_NAME", "selected")
     try:
-        price = int(app.config["predict"]([row])[0])
-    except NotImplementedError as exc:
-        app.logger.error(f"Model error: {exc}")
-        return {"status": "error", "data": str(exc)}, 501
+        bundle = load_model(name)
+    except FileNotFoundError:
+        # Приложение может запуститься до dvc pull, но не объявляет себя готовым.
+        app.logger.warning("Модель отсутствует; выполните dvc pull или dvc repro")
+        bundle = None
+    app.config["MODEL_BUNDLE"] = bundle
+    CORS(app, resources={r"/api/*": {"origins": config.get("ORIGIN", "http://localhost:5000")}})
+    auth = HTTPTokenAuth(scheme="Bearer")
 
-    return {"status": "success", "data": price}
+    @auth.verify_token
+    def verify_token(token):
+        expected = app.config.get("APP_TOKEN")
+        if (
+            isinstance(token, str) and isinstance(expected, str) and expected
+            and hmac.compare_digest(token.encode("utf-8"), expected.encode("utf-8"))
+        ):
+            return "user"
+        return None
 
+    @auth.error_handler
+    def authentication_error(status):
+        return {"status": "error", "data": "Нужен действительный Bearer-токен"}, status
+
+    @app.get("/")
+    def index():
+        return render_template("index.html")
+
+    @app.get("/health")
+    def health():
+        model = app.config["MODEL_BUNDLE"]
+        if model is None:
+            return {"status": "error", "data": "Модель недоступна"}, 503
+        return {"status": "ready", "model": model["model_name"]}
+
+    @app.post("/api/numbers")
+    @auth.login_required
+    def process_numbers():
+        if not request.is_json:
+            return {"status": "error", "data": "Ожидается application/json"}, 415
+        try:
+            data = request.get_json()
+            frame = request_frame(data)
+        except (BadRequest, ValueError) as exc:
+            message = "Неверный JSON" if isinstance(exc, BadRequest) else str(exc)
+            return {"status": "error", "data": message}, 400
+        model = app.config["MODEL_BUNDLE"]
+        if model is None:
+            return {"status": "error", "data": "Модель недоступна"}, 503
+        try:
+            predictions = model["estimator"].predict(frame)
+            if len(predictions) != 1:
+                raise ValueError("Неверный размер ответа модели")
+            price = float(predictions[0])
+            if not math.isfinite(price) or price <= 0 or round(price) <= 0:
+                raise ValueError("Недопустимый прогноз")
+        except Exception:
+            app.logger.exception("Ошибка предсказания")
+            return {"status": "error", "data": "Не удалось получить допустимый прогноз"}, 503
+        return {"status": "success", "data": round(price)}
+
+    return app
+
+
+app = create_app()
 
 if __name__ == "__main__":
-    """Parse arguments and run lifecycle steps"""
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-m",
-        "--model",
-        help="Имя модели из service/predict.py или путь к сохранённой .pkl модели",
-        default=MODEL_NAME,
-    )
+    parser = argparse.ArgumentParser(description="Сервис оценки стоимости квартиры")
+    parser.add_argument("-m", "--model", default=None, help="selected, baseline_const, lin_reg или путь к артефакту")
+    parser.add_argument("--port", type=int, default=5000)
     args = parser.parse_args()
-
-    app.config["predict"] = load_predictor(args.model)
-    app.logger.info(f"Use model: {args.model}")
-    app.run(debug=True)
+    logging.basicConfig(level=logging.INFO)
+    server = create_app({"MODEL_NAME": args.model}) if args.model else app
+    server.run(host="127.0.0.1", port=args.port, debug=False)
