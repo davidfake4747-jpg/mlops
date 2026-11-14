@@ -1,0 +1,10 @@
+-c requirements-monitoring.lock.txt
+Flask
+Flask-Cors
+Flask-HTTPAuth
+python-dotenv
+pandas
+scikit-learn
+joblib
+gunicorn
+prometheus-client

@@ -1,5 +1,6 @@
 """Общая схема признаков и загрузка собственных обученных артефактов."""
 
+import hashlib
 import math
 from pathlib import Path
 
@@ -76,4 +77,5 @@ def load_model(name):
         raise ValueError("В артефакте отсутствует predict")
     if list(getattr(estimator, "feature_names_in_", [])) != list(FEATURES):
         raise ValueError("Обученная модель имеет другую схему признаков")
+    bundle["artifact_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     return bundle

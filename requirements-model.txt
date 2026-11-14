@@ -4,3 +4,4 @@ mlflow
 Flask
 Flask-Cors
 Flask-HTTPAuth
+prometheus-client==0.26.0

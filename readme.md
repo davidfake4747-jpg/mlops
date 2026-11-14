@@ -16,6 +16,13 @@
 моделей, локальный трекинг экспериментов и API с проверкой запросов.
 Инструкция: [docs/models.md](docs/models.md).
 
+## Мониторинг и CI
+
+Ветка `monitoring-ci` добавляет `/metrics`, сравнение распределений площади
+и комнат с train, Prometheus, готовый дашборд Grafana и Docker Compose.
+GitHub Actions запускает линтер, тесты и сборку образа.
+Инструкция: [docs/monitoring.md](docs/monitoring.md).
+
 ## Защита семинаров
 
 Отчет по семинарам сдается в личной беседе.  

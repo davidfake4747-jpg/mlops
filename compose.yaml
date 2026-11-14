@@ -1,0 +1,51 @@
+name: mlops-housing
+services:
+  api:
+    build: .
+    image: mlops-housing-api:local
+    environment:
+      APP_TOKEN: ${APP_TOKEN:?Задайте APP_TOKEN в .env}
+      MODEL_NAME: selected
+      ORIGIN: ${ORIGIN:-http://localhost:5000}
+      DRIFT_REFERENCE_PATH: reports/reference.json
+      DRIFT_WINDOW_SIZE: ${DRIFT_WINDOW_SIZE:-200}
+      DRIFT_MIN_SAMPLES: ${DRIFT_MIN_SAMPLES:-30}
+    volumes:
+      - type: bind
+        source: ./models
+        target: /app/models
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "127.0.0.1:5000:5000"
+  prometheus:
+    image: prom/prometheus@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      api:
+        condition: service_healthy
+  grafana:
+    image: grafana/grafana@sha256:0615ec4fbd4072004b7d86b46ded63013a74b7d6eb1119273dd89e8fa25c13cf
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Задайте GRAFANA_ADMIN_PASSWORD в .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+volumes:
+  prometheus-data:
+  grafana-data:

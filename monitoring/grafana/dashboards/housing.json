@@ -1,0 +1,350 @@
+{
+  "uid": "housing-api",
+  "title": "MLOps — квартиры Москвы",
+  "tags": [
+    "mlops",
+    "housing"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Доступность API",
+      "type": "stat",
+      "description": "1 — Prometheus успешно читает метрики; 0 — API недоступен.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "housing-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "up{job=\"housing-api\"}",
+          "legendFormat": "API",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Готовность модели",
+      "type": "stat",
+      "description": "1 — артефакт загружен; 0 — модель отсутствует.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "housing-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "housing_model_ready{job=\"housing-api\"}",
+          "legendFormat": "Модель",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Запросов в окне",
+      "type": "stat",
+      "description": "Только успешные прогнозы; окно ограничено 200 последними запросами по умолчанию.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "housing-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "housing_drift_window_samples{job=\"housing-api\"}",
+          "legendFormat": "Запросы",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Готовность сравнения",
+      "type": "stat",
+      "description": "1 — reference совпадает с моделью и накоплено не менее 30 запросов. До этого PSI не показывается.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "housing-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "housing_drift_ready{job=\"housing-api\"}",
+          "legendFormat": "Сравнение",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Запросы в секунду",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "housing-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(housing_http_requests_total{route=\"/api/numbers\"}[$__rate_interval]))",
+          "legendFormat": "Запросы",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Доля ошибок API",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "housing-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "(sum(rate(housing_http_requests_total{route=\"/api/numbers\",status=~\"4..\"}[$__rate_interval])) or vector(0)) / clamp_min(sum(rate(housing_http_requests_total{route=\"/api/numbers\"}[$__rate_interval])), 1e-9)",
+          "legendFormat": "4xx",
+          "refId": "A"
+        },
+        {
+          "expr": "(sum(rate(housing_http_requests_total{route=\"/api/numbers\",status=~\"5..\"}[$__rate_interval])) or vector(0)) / clamp_min(sum(rate(housing_http_requests_total{route=\"/api/numbers\"}[$__rate_interval])), 1e-9)",
+          "legendFormat": "5xx",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Время запроса p95",
+      "type": "timeseries",
+      "description": "Оценка по histogram; без запросов значение недоступно.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "housing-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(housing_http_request_duration_seconds_bucket{route=\"/api/numbers\"}[$__rate_interval])))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Сравнение распределений: PSI",
+      "type": "timeseries",
+      "description": "Сглаженный PSI площади и комнат относительно train. Это диагностический показатель, не проверка статистической значимости и не доказательство ухудшения MAE.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "housing-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "housing_feature_psi{job=\"housing-api\"} and on(job, instance) (housing_drift_ready{job=\"housing-api\"} == 1)",
+          "legendFormat": "{{feature}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

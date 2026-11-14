@@ -1,0 +1,4 @@
+-r requirements-model.txt
+-c requirements-monitoring.lock.txt
+prometheus-client
+ruff
