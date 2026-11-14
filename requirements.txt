@@ -1,5 +1,7 @@
+-c requirements-data.lock.txt
 cianparser
 pandas
+openpyxl
 flask
 jupyter
 scikit-learn

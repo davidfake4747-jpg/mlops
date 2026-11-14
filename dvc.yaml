@@ -1,0 +1,29 @@
+stages:
+  prepare:
+    cmd: python preprocess.py
+    deps:
+      - data
+      - preprocess.py
+      - prepare_data.py
+      - requirements-data.lock.txt
+    params:
+      - prepare.exclude_apartments
+    outs:
+      - features/all_features.csv
+      - reports/data_quality.json
+      - reports/excluded_rows.csv
+  split:
+    cmd: python split_data.py
+    deps:
+      - features/all_features.csv
+      - split_data.py
+      - requirements-data.lock.txt
+    params:
+      - split.test_size
+      - split.random_state
+      - split.n_splits
+    outs:
+      - features/train.csv
+      - features/test.csv
+      - features/split_assignments.csv
+      - reports/split.json
